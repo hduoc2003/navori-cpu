@@ -769,7 +769,7 @@ module cpu_addr::cpu_oods_7 {
                 let shifted_eval_point = fmul(eval_point, eval_coset_offset_);
 
                 for (offset in 13..111) {
-                    let denominator = shifted_eval_point - *borrow(expmods_and_points, offset);
+                    let denominator = shifted_eval_point + *borrow(expmods_and_points, offset);
                     set_el(batch_inverse_array, products_ptr + offset - 13, partial_product);
                     set_el(batch_inverse_array, values_ptr + offset - 13, denominator);
                     partial_product = fmul(partial_product, denominator);
