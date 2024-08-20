@@ -1,4 +1,5 @@
 module cpu_addr::cpu_oods_7 {
+    use std::signer::address_of;
     use std::vector::{borrow, for_each_ref, length, push_back};
     use lib_addr::prime_field_element_0::{fmul, fadd, fpow, inverse};
     use lib_addr::vector::{assign, set_el};
@@ -52,6 +53,27 @@ module cpu_addr::cpu_oods_7 {
     // uint256 constant internal BATCH_INVERSE_CHUNK = (2 + N_ROWS_IN_MASK);
     const BATCH_INVERSE_CHUNK: u64 = (2 + 98);
 
+    public fun init_data_type(signer: &signer) {
+        let signer_addr = address_of(signer);
+        if (!exists<FbCheckpoint>(signer_addr)) {
+            move_to(signer, FbCheckpoint {
+                inner: FB_CHECKPOINT1
+            });
+            move_to(signer, FbCache {
+                n_queries: 0,
+                batch_inverse_array: vector[]
+            });
+            move_to(signer, FbCheckpoint2Cache {
+                fri_queue: 0,
+                fri_queue_end: 0,
+                trace_query_responses: 0,
+                denominators_ptr: 0,
+                composition_query_responses: 0,
+                first_invoking: true
+            });
+        };
+    }
+
     /*
       Builds and sums boundary constraints that check that the prover provided the proper evaluations
       out of domain evaluations for the trace and composition columns.
@@ -73,23 +95,47 @@ module cpu_addr::cpu_oods_7 {
             d is the degree of the composition polynomial.
             c is the evaluation sent by the prover.
     */
-    public fun fallback(ctx: &mut vector<u256>) {
-        let n_queries = (*borrow(ctx, MM_N_UNIQUE_QUERIES) as u64);
-        let batch_inverse_array = assign(0u256, 2 * n_queries * BATCH_INVERSE_CHUNK);
+    public fun fallback(signer: &signer, ctx: &mut vector<u256>): bool acquires FbCheckpoint, FbCache, FbCheckpoint2Cache {
+        let signer_addr = address_of(signer);
+        let FbCheckpoint {
+            inner: checkpoint
+        } = borrow_global_mut<FbCheckpoint>(signer_addr);
+        let FbCache {
+            n_queries,
+            batch_inverse_array
+        } = borrow_global_mut<FbCache>(signer_addr);
+        if (*checkpoint == FB_CHECKPOINT1) {
+            *n_queries = (*borrow(ctx, MM_N_UNIQUE_QUERIES) as u64);
+            *batch_inverse_array = assign(0u256, 2 * *n_queries * BATCH_INVERSE_CHUNK);
 
-        oods_prepare_inverses(ctx, &mut batch_inverse_array);
+            oods_prepare_inverses(ctx, batch_inverse_array);
+            *checkpoint = FB_CHECKPOINT2;
+            return false
+        };
 
+        let FbCheckpoint2Cache {
+            fri_queue,
+            fri_queue_end,
+            trace_query_responses,
+            denominators_ptr,
+            composition_query_responses,
+            first_invoking
+        } = borrow_global_mut<FbCheckpoint2Cache>(signer_addr);
+        if (*first_invoking) {
+            *first_invoking = false;
+            *fri_queue = /*fri_queue*/ MM_FRI_QUEUE;
+            *fri_queue_end = *fri_queue + *n_queries * FRI_QUEUE_SLOT_SIZE;
+            *trace_query_responses = /*traceQueryQesponses*/ MM_TRACE_QUERY_RESPONSES;
+            *composition_query_responses = /*composition_query_responses*/ MM_COMPOSITION_QUERY_RESPONSES;
+            // Set denominators_ptr to point to the batchInverseOut array.
+            // The content of batchInverseOut is described in oodsPrepareInverses.
+            *denominators_ptr = 0u64;
+        };
+        let cnt = 0;
         let prime = K_MODULUS;
-        let fri_queue = /*fri_queue*/ MM_FRI_QUEUE;
-        let fri_queue_end = fri_queue + n_queries * FRI_QUEUE_SLOT_SIZE;
-        let trace_query_responses = /*traceQueryQesponses*/ MM_TRACE_QUERY_RESPONSES;
 
-        let composition_query_responses = /*composition_query_responses*/ MM_COMPOSITION_QUERY_RESPONSES;
-
-        // Set denominators_ptr to point to the batchInverseOut array.
-        // The content of batchInverseOut is described in oodsPrepareInverses.
-        let denominators_ptr = 0u64;
-        while (fri_queue < fri_queue_end) {
+        while (*fri_queue < *fri_queue_end && cnt < CP2_ITERATION_LENGTH) {
+            cnt = cnt + 1;
             // res accumulates numbers modulo prime. Since 31*prime < 2**256, we may add up to
             // 31 numbers without fear of overflow, and use mod_add modulo prime only every
             // 31 iterations, and once more at the very end.
@@ -103,7 +149,7 @@ module cpu_addr::cpu_oods_7 {
             for (trace_query_responses_offset in 0..12) {
                 // Read the next element.
                 let column_value = fmul(
-                    *borrow(ctx, trace_query_responses + trace_query_responses_offset),
+                    *borrow(ctx, *trace_query_responses + trace_query_responses_offset),
                     K_MONTGOMERY_R_INV
                 );
 
@@ -112,7 +158,7 @@ module cpu_addr::cpu_oods_7 {
                         res,
                         fmul(
                             fmul(
-                                *borrow(&batch_inverse_array, denominators_ptr + *i),
+                                *borrow(batch_inverse_array, *denominators_ptr + *i),
                                 oods_alpha_pow
                             ),
                             column_value + prime - /*oods_values[0]*/ *borrow(ctx, 359 + odds_values_offset)
@@ -124,17 +170,17 @@ module cpu_addr::cpu_oods_7 {
             };
 
             // Advance trace_query_responses by amount read (0x20 * nTraceColumns).
-            trace_query_responses = trace_query_responses + 12;
+            *trace_query_responses = *trace_query_responses + 12;
 
             // Composition constraints.
 
             {
                 // Read the next element.
-                let column_value = fmul(*borrow(ctx, composition_query_responses), K_MONTGOMERY_R_INV);
+                let column_value = fmul(*borrow(ctx, *composition_query_responses), K_MONTGOMERY_R_INV);
                 // res += c_192*(h_0(x) - C_0(z^2)) / (x - z^2).
-                res = 
+                res =
                     res +
-                    fmul(fmul(/*(x - z^2)^(-1)*/ *borrow(&batch_inverse_array, denominators_ptr + 98),
+                    fmul(fmul(/*(x - z^2)^(-1)*/ *borrow(batch_inverse_array, *denominators_ptr + 98),
                         oods_alpha_pow),
                         column_value + (prime -/*composition_oods_values[0]*/ *borrow(ctx, 359 + 192)))
                 ;
@@ -143,11 +189,11 @@ module cpu_addr::cpu_oods_7 {
 
             {
                 // Read the next element.
-                let column_value = fmul(*borrow(ctx, composition_query_responses + 1), K_MONTGOMERY_R_INV);
+                let column_value = fmul(*borrow(ctx, *composition_query_responses + 1), K_MONTGOMERY_R_INV);
                 // res += c_193*(h_1(x) - C_1(z^2)) / (x - z^2).
-                res = 
+                res =
                     res +
-                    fmul(fmul(/*(x - z^2)^(-1)*/ *borrow(&batch_inverse_array, denominators_ptr + 98),
+                    fmul(fmul(/*(x - z^2)^(-1)*/ *borrow(batch_inverse_array, *denominators_ptr + 98),
                         oods_alpha_pow),
                         column_value + (prime - /*composition_oods_values[1]*/ *borrow(ctx, 359 + 193)))
                 ;
@@ -155,22 +201,30 @@ module cpu_addr::cpu_oods_7 {
             };
 
             // Advance composition_query_responses by amount read (0x20 * constraintDegree).
-            composition_query_responses = composition_query_responses + 2;
+            *composition_query_responses = *composition_query_responses + 2;
 
             // Append the friValue, which is the sum of the out-of-domain-sampling boundary
             // constraints for the trace and composition polynomials, to the fri_queue array.
-            set_el(ctx, fri_queue + 1, res % prime);
+            set_el(ctx, *fri_queue + 1, res % prime);
 
             // print(&(res % prime));
 
             // Append the friInvPoint of the current query to the fri_queue array.
-            set_el(ctx, fri_queue + 2, *borrow(&batch_inverse_array, denominators_ptr + 99));
+            set_el(ctx, *fri_queue + 2, *borrow(batch_inverse_array, *denominators_ptr + 99));
 
             // Advance denominators_ptr by chunk size (0x20 * (2+N_ROWS_IN_MASK)).
-            denominators_ptr = denominators_ptr + 100;
+            *denominators_ptr = *denominators_ptr + 100;
 
-            fri_queue = fri_queue + 3;
+            *fri_queue = *fri_queue + 3;
         };
+
+        if (*fri_queue >= *fri_queue) {
+            *first_invoking = true;
+            *checkpoint = FB_CHECKPOINT1;
+            true
+        } else {
+            false
+        }
     }
 
     /*
@@ -186,7 +240,7 @@ module cpu_addr::cpu_oods_7 {
           N_ROWS_IN_MASK:          (x - z^constraintDegree)^-1
           N_ROWS_IN_MASK+1:        frieval_pointInv.
     */
-    fun oods_prepare_inverses(ctx: &mut vector<u256>, batch_inverse_array: &mut vector<u256>) {
+    fun oods_prepare_inverses(ctx: &vector<u256>, batch_inverse_array: &mut vector<u256>) {
         let eval_coset_offset_ = GENERATOR_VAL;
         // The array expmods_and_points stores subexpressions that are needed
         // for the denominators computation.
@@ -838,6 +892,31 @@ module cpu_addr::cpu_oods_7 {
                 );
             };
         };
+    }
+
+    // Data of the function `fallback`
+    // checkpoints
+    const FB_CHECKPOINT1: u8 = 1;
+    const FB_CHECKPOINT2: u8 = 2;
+
+    struct FbCheckpoint has key {
+        inner: u8
+    }
+
+    struct FbCache has key {
+        n_queries: u64,
+        batch_inverse_array: vector<u256>
+    }
+
+    const CP2_ITERATION_LENGTH: u64 = 8;
+
+    struct FbCheckpoint2Cache has key {
+        fri_queue: u64,
+        fri_queue_end: u64,
+        trace_query_responses: u64,
+        denominators_ptr: u64,
+        composition_query_responses: u64,
+        first_invoking: bool
     }
 
     // assertion codes
