@@ -7,9 +7,11 @@ module cpu_addr::cairo_bootloader_program {
     }
 
     public fun init_compiled_program(signer: &signer, compiled_program: vector<u256>) {
-        move_to(signer, CompiledProgram {
-            inner: compiled_program
-        });
+        if (!exists<CompiledProgram>(address_of(signer))) {
+            move_to(signer, CompiledProgram {
+                inner: compiled_program
+            });
+        };
     }
 
     public fun get_compiled_program(signer: &signer): vector<u256> acquires CompiledProgram {

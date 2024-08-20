@@ -218,7 +218,7 @@ module cpu_addr::cpu_oods_7 {
             *fri_queue = *fri_queue + 3;
         };
 
-        if (*fri_queue >= *fri_queue) {
+        if (*fri_queue >= *fri_queue_end) {
             *first_invoking = true;
             *checkpoint = FB_CHECKPOINT1;
             true
