@@ -1,4 +1,5 @@
 module cpu_addr::layout_specific_7 {
+    use std::signer::address_of;
     use std::vector::borrow;
 
     use cpu_addr::pedersen_hash_points_x_column;
@@ -12,99 +13,109 @@ module cpu_addr::layout_specific_7 {
     use lib_addr::vector::set_el;
 
     // This line is used for generating constants DO NOT REMOVE!
-	// 128
-	const PEDERSEN_BUILTIN_RATIO: u256 = 0x80;
-	// 8
-	const RANGE_CHECK_BUILTIN_RATIO: u256 = 0x8;
-	// 8
-	const BITWISE__RATIO: u256 = 0x8;
-	// 8
-	const POSEIDON__RATIO: u256 = 0x8;
-	// 1
-	const PEDERSEN_BUILTIN_REPETITIONS: u256 = 0x1;
-	// 4
-	const DILUTED_SPACING: u8 = 0x4;
-	// 16
-	const DILUTED_N_BITS: u256 = 0x10;
-	// 0x4fa
-	const MM_LOG_N_STEPS: u64 = 0x4fa;
-	// 0x15a
-	const MM_INITIAL_PEDERSEN_ADDR: u64 = 0x15a;
-	// 0x158
-	const MM_PEDERSEN__SHIFT_POINT_X: u64 = 0x158;
-	// 0x159
-	const MM_PEDERSEN__SHIFT_POINT_Y: u64 = 0x159;
-	// 0x15b
-	const MM_INITIAL_RANGE_CHECK_ADDR: u64 = 0x15b;
-	// 0x14f
-	const MM_RANGE_CHECK16__PERM__PUBLIC_MEMORY_PROD: u64 = 0x14f;
-	// 0x15c
-	const MM_INITIAL_BITWISE_ADDR: u64 = 0x15c;
-	// 0x153
-	const MM_DILUTED_CHECK__PERMUTATION__PUBLIC_MEMORY_PROD: u64 = 0x153;
-	// 0x154
-	const MM_DILUTED_CHECK__FIRST_ELM: u64 = 0x154;
-	// 0x15d
-	const MM_INITIAL_POSEIDON_ADDR: u64 = 0x15d;
-	// 0x15f
-	const MM_OODS_POINT: u64 = 0x15f;
-	// 0x13d
-	const MM_PERIODIC_COLUMN__PEDERSEN__POINTS__X: u64 = 0x13d;
-	// 0x13e
-	const MM_PERIODIC_COLUMN__PEDERSEN__POINTS__Y: u64 = 0x13e;
-	// 0x160
-	const MM_INTERACTION_ELEMENTS: u64 = 0x160;
-	// 0x152
-	const MM_DILUTED_CHECK__PERMUTATION__INTERACTION_ELM: u64 = 0x152;
-	// 0x155
-	const MM_DILUTED_CHECK__INTERACTION_Z: u64 = 0x155;
-	// 0x156
-	const MM_DILUTED_CHECK__INTERACTION_ALPHA: u64 = 0x156;
-	// 0x157
-	const MM_DILUTED_CHECK__FINAL_CUM_VAL: u64 = 0x157;
-	// 0x13f
-	const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__FULL_ROUND_KEY0: u64 = 0x13f;
-	// 0x140
-	const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__FULL_ROUND_KEY1: u64 = 0x140;
-	// 0x141
-	const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__FULL_ROUND_KEY2: u64 = 0x141;
-	// 0x142
-	const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__PARTIAL_ROUND_KEY0: u64 = 0x142;
-	// 0x143
-	const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__PARTIAL_ROUND_KEY1: u64 = 0x143;
-	// 8
-	const OFFSET_OUTPUT_BEGIN_ADDR: u64 = 0x8;
-	// 9
-	const OFFSET_OUTPUT_STOP_PTR: u64 = 0x9;
-	// 10
-	const OFFSET_PEDERSEN_BEGIN_ADDR: u64 = 0xa;
-	// 11
-	const OFFSET_PEDERSEN_STOP_PTR: u64 = 0xb;
-	// 12
-	const OFFSET_RANGE_CHECK_BEGIN_ADDR: u64 = 0xc;
-	// 13
-	const OFFSET_RANGE_CHECK_STOP_PTR: u64 = 0xd;
-	// 20
-	const OFFSET_N_PUBLIC_MEMORY_PAGES: u64 = 0x14;
-	// 14
-	const OFFSET_BITWISE_BEGIN_ADDR: u64 = 0xe;
-	// 15
-	const OFFSET_BITWISE_STOP_ADDR: u64 = 0xf;
-	// 16
-	const OFFSET_POSEIDON_BEGIN_ADDR: u64 = 0x10;
-	// 17
-	const OFFSET_POSEIDON_STOP_PTR: u64 = 0x11;
-	// 0
-	const OUTPUT_BUILTIN_BIT: u256 = 0x0;
-	// 1
-	const PEDERSEN_BUILTIN_BIT: u256 = 0x1;
-	// 2
-	const RANGE_CHECK_BUILTIN_BIT: u256 = 0x2;
-	// 4
-	const BITWISE_BUILTIN_BIT: u256 = 0x4;
-	// 7
-	const POSEIDON_BUILTIN_BIT: u256 = 0x7;
+    // 128
+    const PEDERSEN_BUILTIN_RATIO: u256 = 0x80;
+    // 8
+    const RANGE_CHECK_BUILTIN_RATIO: u256 = 0x8;
+    // 8
+    const BITWISE__RATIO: u256 = 0x8;
+    // 8
+    const POSEIDON__RATIO: u256 = 0x8;
+    // 1
+    const PEDERSEN_BUILTIN_REPETITIONS: u256 = 0x1;
+    // 4
+    const DILUTED_SPACING: u8 = 0x4;
+    // 16
+    const DILUTED_N_BITS: u256 = 0x10;
+    // 0x4fa
+    const MM_LOG_N_STEPS: u64 = 0x4fa;
+    // 0x15a
+    const MM_INITIAL_PEDERSEN_ADDR: u64 = 0x15a;
+    // 0x158
+    const MM_PEDERSEN__SHIFT_POINT_X: u64 = 0x158;
+    // 0x159
+    const MM_PEDERSEN__SHIFT_POINT_Y: u64 = 0x159;
+    // 0x15b
+    const MM_INITIAL_RANGE_CHECK_ADDR: u64 = 0x15b;
+    // 0x14f
+    const MM_RANGE_CHECK16__PERM__PUBLIC_MEMORY_PROD: u64 = 0x14f;
+    // 0x15c
+    const MM_INITIAL_BITWISE_ADDR: u64 = 0x15c;
+    // 0x153
+    const MM_DILUTED_CHECK__PERMUTATION__PUBLIC_MEMORY_PROD: u64 = 0x153;
+    // 0x154
+    const MM_DILUTED_CHECK__FIRST_ELM: u64 = 0x154;
+    // 0x15d
+    const MM_INITIAL_POSEIDON_ADDR: u64 = 0x15d;
+    // 0x15f
+    const MM_OODS_POINT: u64 = 0x15f;
+    // 0x13d
+    const MM_PERIODIC_COLUMN__PEDERSEN__POINTS__X: u64 = 0x13d;
+    // 0x13e
+    const MM_PERIODIC_COLUMN__PEDERSEN__POINTS__Y: u64 = 0x13e;
+    // 0x160
+    const MM_INTERACTION_ELEMENTS: u64 = 0x160;
+    // 0x152
+    const MM_DILUTED_CHECK__PERMUTATION__INTERACTION_ELM: u64 = 0x152;
+    // 0x155
+    const MM_DILUTED_CHECK__INTERACTION_Z: u64 = 0x155;
+    // 0x156
+    const MM_DILUTED_CHECK__INTERACTION_ALPHA: u64 = 0x156;
+    // 0x157
+    const MM_DILUTED_CHECK__FINAL_CUM_VAL: u64 = 0x157;
+    // 0x13f
+    const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__FULL_ROUND_KEY0: u64 = 0x13f;
+    // 0x140
+    const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__FULL_ROUND_KEY1: u64 = 0x140;
+    // 0x141
+    const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__FULL_ROUND_KEY2: u64 = 0x141;
+    // 0x142
+    const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__PARTIAL_ROUND_KEY0: u64 = 0x142;
+    // 0x143
+    const MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__PARTIAL_ROUND_KEY1: u64 = 0x143;
+    // 8
+    const OFFSET_OUTPUT_BEGIN_ADDR: u64 = 0x8;
+    // 9
+    const OFFSET_OUTPUT_STOP_PTR: u64 = 0x9;
+    // 10
+    const OFFSET_PEDERSEN_BEGIN_ADDR: u64 = 0xa;
+    // 11
+    const OFFSET_PEDERSEN_STOP_PTR: u64 = 0xb;
+    // 12
+    const OFFSET_RANGE_CHECK_BEGIN_ADDR: u64 = 0xc;
+    // 13
+    const OFFSET_RANGE_CHECK_STOP_PTR: u64 = 0xd;
+    // 20
+    const OFFSET_N_PUBLIC_MEMORY_PAGES: u64 = 0x14;
+    // 14
+    const OFFSET_BITWISE_BEGIN_ADDR: u64 = 0xe;
+    // 15
+    const OFFSET_BITWISE_STOP_ADDR: u64 = 0xf;
+    // 16
+    const OFFSET_POSEIDON_BEGIN_ADDR: u64 = 0x10;
+    // 17
+    const OFFSET_POSEIDON_STOP_PTR: u64 = 0x11;
+    // 0
+    const OUTPUT_BUILTIN_BIT: u256 = 0x0;
+    // 1
+    const PEDERSEN_BUILTIN_BIT: u256 = 0x1;
+    // 2
+    const RANGE_CHECK_BUILTIN_BIT: u256 = 0x2;
+    // 4
+    const BITWISE_BUILTIN_BIT: u256 = 0x4;
+    // 7
+    const POSEIDON_BUILTIN_BIT: u256 = 0x7;
     // End of generating constants!
+
+    public fun init_data_type(signer: &signer) {
+        if (!exists<PfocCache>(address_of(signer))) {
+            move_to(signer, PfocCache {
+                checkpoint: PFOC_CHECKPOINT1,
+                z_point_pow_pedersen: 0,
+                oods_point: 0
+            });
+        };
+    }
 
     #[view]
     public fun get_layout_info(): (u256, u256) {
@@ -186,44 +197,58 @@ module cpu_addr::layout_specific_7 {
             POSEIDON__RATIO, 6, n_steps);
     }
 
-    public fun prepare_for_oods_check(ctx: &mut vector<u256>) {
-        let mm_interaction_elements = MM_INTERACTION_ELEMENTS;
-        let oods_point = *borrow(ctx, MM_OODS_POINT);
-        let n_steps = 1 << (*borrow(ctx, MM_LOG_N_STEPS) as u8);
+    public fun prepare_for_oods_check(signer: &signer, ctx: &mut vector<u256>): bool acquires PfocCache {
+        let signer_addr = address_of(signer);
+        let PfocCache {
+            checkpoint,
+            z_point_pow_pedersen,
+            oods_point
+        } = borrow_global_mut<PfocCache>(signer_addr);
+        
+        if (*checkpoint == PFOC_CHECKPOINT1) {
+            *oods_point = *borrow(ctx, MM_OODS_POINT);
+            let n_steps = 1 << (*borrow(ctx, MM_LOG_N_STEPS) as u8);
 
-        // The number of copies in the pedersen hash periodic columns is
-        // nSteps / PEDERSEN_BUILTIN_RATIO / PEDERSEN_BUILTIN_REPETITIONS.
-        let n_pedersen_hash_copies = safe_div(
-            n_steps,
-            PEDERSEN_BUILTIN_RATIO * PEDERSEN_BUILTIN_REPETITIONS);
-        let z_point_pow_pedersen = fpow(oods_point, n_pedersen_hash_copies);
-        set_el(
-            ctx,
-            MM_PERIODIC_COLUMN__PEDERSEN__POINTS__X,
-            pedersen_hash_points_x_column::compute(z_point_pow_pedersen)
-        );
+            // The number of copies in the pedersen hash periodic columns is
+            // nSteps / PEDERSEN_BUILTIN_RATIO / PEDERSEN_BUILTIN_REPETITIONS.
+            let n_pedersen_hash_copies = safe_div(
+                n_steps,
+                PEDERSEN_BUILTIN_RATIO * PEDERSEN_BUILTIN_REPETITIONS);
+            *z_point_pow_pedersen = fpow(*oods_point, n_pedersen_hash_copies);
+            set_el(
+                ctx,
+                MM_PERIODIC_COLUMN__PEDERSEN__POINTS__X,
+                pedersen_hash_points_x_column::compute(*z_point_pow_pedersen)
+            );
+            *checkpoint = PFOC_CHECKPOINT2;
+            return false;
+        };
 
-        set_el(
-            ctx,
-            MM_PERIODIC_COLUMN__PEDERSEN__POINTS__Y,
-            pedersen_hash_points_y_column::compute(z_point_pow_pedersen)
-        );
+        if (*checkpoint == PFOC_CHECKPOINT2) {
+            set_el(
+                ctx,
+                MM_PERIODIC_COLUMN__PEDERSEN__POINTS__Y,
+                pedersen_hash_points_y_column::compute(*z_point_pow_pedersen)
+            );
+            *checkpoint = PFOC_CHECKPOINT3;
+            return false;
+        };
 
-        let tmp = *borrow(ctx, mm_interaction_elements + 3);
+        let tmp = *borrow(ctx, MM_INTERACTION_ELEMENTS + 3);
         set_el(
             ctx,
             MM_DILUTED_CHECK__PERMUTATION__INTERACTION_ELM,
             tmp
         );
 
-        let tmp = *borrow(ctx, mm_interaction_elements + 4);
+        let tmp = *borrow(ctx, MM_INTERACTION_ELEMENTS + 4);
         set_el(
             ctx,
             MM_DILUTED_CHECK__INTERACTION_Z,
             tmp
         );
 
-        let tmp = *borrow(ctx, mm_interaction_elements + 5);
+        let tmp = *borrow(ctx, MM_INTERACTION_ELEMENTS + 5);
         set_el(
             ctx,
             MM_DILUTED_CHECK__INTERACTION_ALPHA,
@@ -242,7 +267,7 @@ module cpu_addr::layout_specific_7 {
         let n_poseidon_hash_copies = safe_div(
             1 << ((*borrow(ctx, MM_LOG_N_STEPS)) as u8),
             POSEIDON__RATIO);
-        let z_point_pow_poseidon = fpow(oods_point, n_poseidon_hash_copies);
+        let z_point_pow_poseidon = fpow(*oods_point, n_poseidon_hash_copies);
 
         set_el(
             ctx,
@@ -269,7 +294,10 @@ module cpu_addr::layout_specific_7 {
             MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__PARTIAL_ROUND_KEY1,
             poseidon_poseidon_partial_round_key_1_column_7::compute(z_point_pow_poseidon)
         );
+        *checkpoint = PFOC_CHECKPOINT1;
+        true
     }
+
     /*
       Computes the final cumulative value of the diluted pool.
     */
@@ -325,6 +353,19 @@ module cpu_addr::layout_specific_7 {
 
         res
     }
+
+    // Data of the function `prepare_for_oods_check`
+    // checkpoints
+    const PFOC_CHECKPOINT1: u8 = 1;
+    const PFOC_CHECKPOINT2: u8 = 2;
+    const PFOC_CHECKPOINT3: u8 = 3;
+
+    struct PfocCache has key, drop {
+        checkpoint: u8,
+        z_point_pow_pedersen: u256,
+        oods_point: u256
+    }
+
     // assertion codes
     const OUTPUT_BEGIN_ADDR_MUST_BE_LESS_THAN_OR_EQUAL_TO_STOP_PTR: u64 = 1;
     const OUT_OF_RANGE_OUTPUT_STOP_PTR: u64 = 2;
