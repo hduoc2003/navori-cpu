@@ -1,5 +1,4 @@
 module cpu_addr::layout_specific_7 {
-    use std::signer::address_of;
     use std::vector::borrow;
 
     use cpu_addr::pedersen_hash_points_x_column;
@@ -107,16 +106,6 @@ module cpu_addr::layout_specific_7 {
     const POSEIDON_BUILTIN_BIT: u256 = 0x7;
     // End of generating constants!
 
-    public fun init_data_type(signer: &signer) {
-        if (!exists<PfocCache>(address_of(signer))) {
-            move_to(signer, PfocCache {
-                checkpoint: PFOC_CHECKPOINT1,
-                z_point_pow_pedersen: 0,
-                oods_point: 0
-            });
-        };
-    }
-
     #[view]
     public fun get_layout_info(): (u256, u256) {
         let public_memory_offset = OFFSET_N_PUBLIC_MEMORY_PAGES;
@@ -197,58 +186,44 @@ module cpu_addr::layout_specific_7 {
             POSEIDON__RATIO, 6, n_steps);
     }
 
-    public fun prepare_for_oods_check(signer: &signer, ctx: &mut vector<u256>): bool acquires PfocCache {
-        let signer_addr = address_of(signer);
-        let PfocCache {
-            checkpoint,
-            z_point_pow_pedersen,
-            oods_point
-        } = borrow_global_mut<PfocCache>(signer_addr);
-        
-        if (*checkpoint == PFOC_CHECKPOINT1) {
-            *oods_point = *borrow(ctx, MM_OODS_POINT);
-            let n_steps = 1 << (*borrow(ctx, MM_LOG_N_STEPS) as u8);
+    public fun prepare_for_oods_check(ctx: &mut vector<u256>) {
+        let mm_interaction_elements = MM_INTERACTION_ELEMENTS;
+        let oods_point = *borrow(ctx, MM_OODS_POINT);
+        let n_steps = 1 << (*borrow(ctx, MM_LOG_N_STEPS) as u8);
 
-            // The number of copies in the pedersen hash periodic columns is
-            // nSteps / PEDERSEN_BUILTIN_RATIO / PEDERSEN_BUILTIN_REPETITIONS.
-            let n_pedersen_hash_copies = safe_div(
-                n_steps,
-                PEDERSEN_BUILTIN_RATIO * PEDERSEN_BUILTIN_REPETITIONS);
-            *z_point_pow_pedersen = fpow(*oods_point, n_pedersen_hash_copies);
-            set_el(
-                ctx,
-                MM_PERIODIC_COLUMN__PEDERSEN__POINTS__X,
-                pedersen_hash_points_x_column::compute(*z_point_pow_pedersen)
-            );
-            *checkpoint = PFOC_CHECKPOINT2;
-            return false;
-        };
+        // The number of copies in the pedersen hash periodic columns is
+        // nSteps / PEDERSEN_BUILTIN_RATIO / PEDERSEN_BUILTIN_REPETITIONS.
+        let n_pedersen_hash_copies = safe_div(
+            n_steps,
+            PEDERSEN_BUILTIN_RATIO * PEDERSEN_BUILTIN_REPETITIONS);
+        let z_point_pow_pedersen = fpow(oods_point, n_pedersen_hash_copies);
+        set_el(
+            ctx,
+            MM_PERIODIC_COLUMN__PEDERSEN__POINTS__X,
+            pedersen_hash_points_x_column::compute(z_point_pow_pedersen)
+        );
 
-        if (*checkpoint == PFOC_CHECKPOINT2) {
-            set_el(
-                ctx,
-                MM_PERIODIC_COLUMN__PEDERSEN__POINTS__Y,
-                pedersen_hash_points_y_column::compute(*z_point_pow_pedersen)
-            );
-            *checkpoint = PFOC_CHECKPOINT3;
-            return false;
-        };
+        set_el(
+            ctx,
+            MM_PERIODIC_COLUMN__PEDERSEN__POINTS__Y,
+            pedersen_hash_points_y_column::compute(z_point_pow_pedersen)
+        );
 
-        let tmp = *borrow(ctx, MM_INTERACTION_ELEMENTS + 3);
+        let tmp = *borrow(ctx, mm_interaction_elements + 3);
         set_el(
             ctx,
             MM_DILUTED_CHECK__PERMUTATION__INTERACTION_ELM,
             tmp
         );
 
-        let tmp = *borrow(ctx, MM_INTERACTION_ELEMENTS + 4);
+        let tmp = *borrow(ctx, mm_interaction_elements + 4);
         set_el(
             ctx,
             MM_DILUTED_CHECK__INTERACTION_Z,
             tmp
         );
 
-        let tmp = *borrow(ctx, MM_INTERACTION_ELEMENTS + 5);
+        let tmp = *borrow(ctx, mm_interaction_elements + 5);
         set_el(
             ctx,
             MM_DILUTED_CHECK__INTERACTION_ALPHA,
@@ -267,7 +242,7 @@ module cpu_addr::layout_specific_7 {
         let n_poseidon_hash_copies = safe_div(
             1 << ((*borrow(ctx, MM_LOG_N_STEPS)) as u8),
             POSEIDON__RATIO);
-        let z_point_pow_poseidon = fpow(*oods_point, n_poseidon_hash_copies);
+        let z_point_pow_poseidon = fpow(oods_point, n_poseidon_hash_copies);
 
         set_el(
             ctx,
@@ -294,10 +269,7 @@ module cpu_addr::layout_specific_7 {
             MM_PERIODIC_COLUMN__POSEIDON__POSEIDON__PARTIAL_ROUND_KEY1,
             poseidon_poseidon_partial_round_key_1_column_7::compute(z_point_pow_poseidon)
         );
-        *checkpoint = PFOC_CHECKPOINT1;
-        true
     }
-
     /*
       Computes the final cumulative value of the diluted pool.
     */
@@ -352,18 +324,6 @@ module cpu_addr::layout_specific_7 {
         res = fadd(p, fmul(q, alpha));
 
         res
-    }
-
-    // Data of the function `prepare_for_oods_check`
-    // checkpoints
-    const PFOC_CHECKPOINT1: u8 = 1;
-    const PFOC_CHECKPOINT2: u8 = 2;
-    const PFOC_CHECKPOINT3: u8 = 3;
-
-    struct PfocCache has key, drop {
-        checkpoint: u8,
-        z_point_pow_pedersen: u256,
-        oods_point: u256
     }
 
     // assertion codes
