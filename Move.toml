@@ -4,7 +4,7 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-cpu_addr = "0xad09869b94e545ee882dd1783cc122dd5a7527e6339065a6070507f8beed4f8b"
+cpu_addr = "2e5da516cf8fe50505f46a661fced1fc92b263b47dd594a2e535f5db174913e3"
 
 [dev-addresses]
 
