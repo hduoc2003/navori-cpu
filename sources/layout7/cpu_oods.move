@@ -922,3 +922,19 @@ module cpu_addr::cpu_oods_7 {
     // assertion codes
     const BATCH_INVERSE_PRODUCT_IS_ZERO: u64 = 1;
 }
+
+#[test_only]
+module cpu_addr::test_cpu_oods_7 {
+    use cpu_addr::cpu_oods_7::{fallback, init_data_type};
+    use cpu_addr::cpu_oods_7_test_data::{ctx_input, ctx_output};
+
+    #[test(signer = @cpu_addr)]
+    fun test_fallback(signer: &signer) {
+        let ctx = ctx_input();
+        init_data_type(signer);
+        fallback(signer, &mut ctx);
+        fallback(signer, &mut ctx);
+        fallback(signer, &mut ctx);
+        assert!(ctx == ctx_output(), 1);
+    }
+}
